@@ -93,7 +93,7 @@
 ![主界面](./image/screenshot_main.png)
 
 ### 时间轴编辑器
-![时间轴编辑器](./image/screenshot_timeline.png)
+![设置参数](./image/screenshot_settings.png)
 
 ## 技术架构
 
