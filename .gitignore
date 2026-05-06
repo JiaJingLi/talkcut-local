@@ -1,0 +1,71 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+*.egg-info/
+dist/
+build/
+
+# PyTorch / FunASR 模型缓存
+.pytorch/
+torch_cache/
+models/
+*.bin
+*.pt
+*.pth
+
+# FFmpeg 临时文件
+*.tmp
+*.temp
+
+# 项目数据（不提交到Git）
+projects/
+*.mp4
+*.wav
+*.json
+!*.example.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 日志文件
+*.log
+logs/
+
+# 诊断文件（可能包含敏感信息）
+diagnose_*.json
+funasr_debug.json
+
+# 启动脚本（Windows 特定）
+# 如果你希望保留，可以注释掉下面两行
+# 启动.bat
+# 1.0启动器.bat
+
+# 测试文件
+test_*.py
+*_test.py
+
+# 覆盖率报告
+.coverage
+htmlcov/
+.pytest_cache/
+
+# 打包输出
+*.exe
+*.app
+*.dmg
+dist/

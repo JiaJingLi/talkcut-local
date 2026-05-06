@@ -1,0 +1,452 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #1a1a2e;
+    color: #eee;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* ========== 工具栏 ========== */
+.toolbar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 16px;
+    background: #16213e;
+    border-radius: 8px;
+    align-items: center;
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: #0f3460;
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: #e94560;
+}
+
+.btn-success {
+    background: #27ae60;
+    color: #fff;
+}
+
+.btn-success:hover {
+    background: #2ecc71;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ========== 主内容区 ========== */
+.main-content {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 20px;
+}
+
+.video-section {
+    background: #16213e;
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.video-container {
+    width: 100%;
+    background: #000;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 16px;
+}
+
+video {
+    width: 100%;
+    display: block;
+}
+
+/* ========== 字幕区 ========== */
+.subtitle-area {
+    height: 120px;
+    overflow-y: auto;
+    background: #0f3460;
+    border-radius: 4px;
+    padding: 12px;
+}
+
+.subtitle-title {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #1a4a7a;
+}
+
+.subtitle-item {
+    padding: 6px 10px;
+    margin-bottom: 3px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.subtitle-item:hover {
+    background: #1a4a7a;
+}
+
+.subtitle-item.active {
+    background: #e94560;
+}
+
+/* ========== 侧边栏（问题列表） ========== */
+.sidebar {
+    background: #16213e;
+    border-radius: 8px;
+    padding: 16px;
+    max-height: calc(100vh - 180px);
+    overflow-y: auto;
+}
+
+.sidebar h3 {
+    margin-bottom: 12px;
+    font-size: 16px;
+    color: #e94560;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.issue-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.issue-item {
+    padding: 10px;
+    background: #0f3460;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+    border-left: 3px solid transparent;
+}
+
+.issue-item:hover {
+    background: #1a4a7a;
+}
+
+.issue-item.issue-kept {
+    border-left-color: #27ae60;
+    opacity: 0.7;
+}
+
+.issue-item.issue-deleted {
+    border-left-color: #e74c3c;
+}
+
+.issue-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.issue-type {
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: #fff;
+}
+
+.issue-type.filler_overuse {
+    background: #e74c3c;
+}
+
+.issue-type.repetition {
+    background: #f39c12;
+}
+
+.issue-type.slow_speech {
+    background: #3498db;
+}
+
+.issue-time {
+    font-size: 11px;
+    color: #aaa;
+}
+
+.issue-text {
+    font-size: 12px;
+    color: #ccc;
+    margin: 6px 0;
+    line-height: 1.4;
+    max-height: 36px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 保留/删除按钮 */
+.issue-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.btn-keep, .btn-delete {
+    padding: 3px 10px;
+    font-size: 11px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-keep {
+    background: #27ae60;
+    color: #fff;
+}
+
+.btn-keep:hover {
+    background: #2ecc71;
+}
+
+.btn-keep:disabled {
+    background: #1a5a3a;
+    cursor: default;
+}
+
+.btn-delete {
+    background: #e74c3c;
+    color: #fff;
+}
+
+.btn-delete:hover {
+    background: #ff6b6b;
+}
+
+.btn-delete:disabled {
+    background: #5a1a1a;
+    cursor: default;
+}
+
+/* ========== 时间轴 ========== */
+.timeline-container {
+    grid-column: 1 / -1;
+    background: #16213e;
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 20px;
+}
+
+.timeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    font-size: 12px;
+    color: #888;
+}
+
+.timeline-canvas {
+    width: 100%;
+    height: 200px;
+    background: #0f3460;
+    border-radius: 4px;
+    cursor: crosshair;
+}
+
+.time-display {
+    font-size: 14px;
+    color: #aaa;
+}
+
+/* ========== 上传区 ========== */
+.upload-area {
+    border: 2px dashed #0f3460;
+    border-radius: 8px;
+    padding: 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.upload-area:hover {
+    border-color: #e94560;
+    background: #1a1a3e;
+}
+
+.upload-area input {
+    display: none;
+}
+
+/* ========== 状态提示 ========== */
+.status {
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    font-size: 14px;
+}
+
+.status.loading {
+    background: #f39c12;
+    color: #000;
+}
+
+.status.success {
+    background: #27ae60;
+    color: #fff;
+}
+
+.status.error {
+    background: #e74c3c;
+    color: #fff;
+}
+
+.hidden {
+    display: none;
+}
+
+/* ========== 设置面板 ========== */
+.settings-panel {
+    background: #16213e;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    padding: 0;
+    overflow: hidden;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 20px;
+    background: #0f3460;
+    border-bottom: 1px solid #1a4a7a;
+}
+
+.settings-header h3 {
+    margin: 0;
+    font-size: 15px;
+    color: #e94560;
+}
+
+.btn-close {
+    background: none;
+    border: none;
+    color: #aaa;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0 6px;
+}
+
+.btn-close:hover {
+    color: #fff;
+}
+
+.settings-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.setting-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.setting-item label {
+    font-size: 13px;
+    color: #ccc;
+    min-width: 180px;
+}
+
+.setting-item label strong {
+    color: #e94560;
+    font-size: 14px;
+}
+
+.setting-item input[type="range"] {
+    flex: 1;
+    max-width: 250px;
+    accent-color: #e94560;
+}
+
+.setting-item input[type="number"] {
+    width: 60px;
+    padding: 4px 8px;
+    background: #0f3460;
+    border: 1px solid #1a4a7a;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 13px;
+}
+
+.setting-item textarea {
+    width: 100%;
+    padding: 10px;
+    background: #0f3460;
+    border: 1px solid #1a4a7a;
+    border-radius: 4px;
+    color: #eee;
+    font-size: 13px;
+    font-family: monospace;
+    line-height: 1.6;
+}
+
+.setting-actions {
+    padding-top: 10px;
+    border-top: 1px solid #1a4a7a;
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* ========== 滚动条美化 ========== */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0a0a1a;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #0f3460;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #1a4a7a;
+}

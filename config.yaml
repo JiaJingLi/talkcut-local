@@ -1,0 +1,30 @@
+silence_threshold_factor: 0.3
+min_silence_for_cut: 1.5
+slow_speech_speed: 2.0
+slow_speech_min_duration: 1.5
+filler_ratio_threshold: 0.08
+repetition_pattern: "(.{2,})\\1{2,}"
+
+filler_words:
+  - "嗯"
+  - "啊"
+  - "呃"
+  - "哦"
+  - "噢"
+  - "诶"
+  - "这个"
+  - "那个"
+  - "就是说"
+  - "然后"
+  - "的话"
+  - "其实"
+  - "基本上"
+  - "那个什么"
+  - "怎么说呢"
+  - "对吧"
+  - "是吧"
+  - "你知道吗"
+
+server:
+  host: "127.0.0.1"
+  port: 5199

@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>口播视频智能粗剪工作站</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 顶部工具栏 -->
+        <div class="toolbar">
+            <input type="file" id="videoInput" accept="video/*" style="display:none">
+            <button class="btn btn-primary" id="btnUpload">选择视频</button>
+            <button class="btn btn-primary" id="btnAnalyze" disabled>开始分析</button>
+            <button class="btn btn-success" id="btnRender" disabled>渲染输出</button>
+            <button class="btn btn-success" id="btnDownload" disabled>下载成品</button>
+            <button class="btn" id="btnSettings" style="background:#555;color:#fff">参数设置</button>
+            <span class="time-display" id="statusText">请选择视频文件</span>
+        </div>
+
+        <!-- 状态提示区 -->
+        <div id="statusArea" class="status hidden"></div>
+
+        <!-- 设置面板（默认隐藏） -->
+        <div id="settingsPanel" class="settings-panel hidden">
+            <div class="settings-header">
+                <h3>检测参数设置</h3>
+                <button class="btn-close" id="btnCloseSettings">✕</button>
+            </div>
+            <div class="settings-body">
+                <!-- 语气词比例阈值 -->
+                <div class="setting-item">
+                    <label>语气词比例阈值：<strong id="thresholdValue">0.08</strong></label>
+                    <input type="range" id="sliderThreshold" min="0.01" max="0.30" step="0.01" value="0.08" style="width:200px">
+                    <input type="number" id="inputThreshold" min="0.01" max="0.30" step="0.01" value="0.08" style="width:60px">
+                </div>
+                <!-- 剪辑静默阈值 -->
+                <div class="setting-item">
+                    <label>剪辑静默阈值(秒)：<strong id="silenceValue">1.5</strong></label>
+                    <input type="range" id="sliderSilence" min="0.5" max="5.0" step="0.1" value="1.5" style="width:200px">
+                    <input type="number" id="inputSilence" min="0.5" max="5.0" step="0.1" value="1.5" style="width:60px">
+                </div>
+                <!-- 慢语速阈值 -->
+                <div class="setting-item">
+                    <label>慢语速阈值(字/秒)：<strong id="speedValue">2.0</strong></label>
+                    <input type="range" id="sliderSpeed" min="0.5" max="5.0" step="0.1" value="2.0" style="width:200px">
+                    <input type="number" id="inputSpeed" min="0.5" max="5.0" step="0.1" value="2.0" style="width:60px">
+                </div>
+                <!-- 语气词库管理 -->
+                <div class="setting-item" style="flex-direction:column;align-items:flex-start;">
+                    <label><strong>语气词库</strong>（每行一个）：</label>
+                    <textarea id="fillerWordsText" rows="6" style="width:100%;margin-top:6px;resize:vertical"></textarea>
+                    <div style="margin-top:8px">
+                        <button class="btn btn-primary" id="btnSaveFiller" style="font-size:12px;padding:4px 12px">保存语气词库</button>
+                        <button class="btn btn-primary" id="btnResetFiller" style="font-size:12px;padding:4px 12px;background:#888">恢复默认</button>
+                    </div>
+                </div>
+                <!-- 操作按钮 -->
+                <div class="setting-actions">
+                    <button class="btn btn-success" id="btnApplySettings">应用参数并重新分析</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="main-content" id="mainContent" style="display:none">
+            <!-- 左侧：视频 + 字幕区 -->
+            <div class="video-section">
+                <div class="video-container">
+                    <video id="videoPlayer" controls></video>
+                </div>
+                <div class="subtitle-area" id="subtitleArea">
+                    <div class="subtitle-title">字幕（点击跳转）</div>
+                </div>
+            </div>
+
+            <!-- 右侧：问题列表 + 保留/删除 -->
+            <div class="sidebar">
+                <h3>问题标记
+                    <button class="btn" id="btnKeepAll" style="float:right;font-size:11px;padding:2px 8px;background:#27ae60;color:#fff">全部保留</button>
+                    <button class="btn" id="btnDeleteAll" style="float:right;font-size:11px;padding:2px 8px;background:#e74c3c;color:#fff;margin-right:4px">全部删除</button>
+                </h3>
+                <div class="issue-list" id="issueList"></div>
+            </div>
+        </div>
+
+        <!-- 时间轴 -->
+        <div class="timeline-container" id="timelineContainer" style="display:none">
+            <div class="timeline-header">
+                <h3>时间轴编辑器</h3>
+                <span style="font-size:12px;color:#888">← → 键逐帧微调 | 拖拽边缘调整保留区间</span>
+                <span class="time-display" id="timelineInfo">拖拽边缘调整保留区间</span>
+            </div>
+            <canvas class="timeline-canvas" id="timelineCanvas"></canvas>
+        </div>
+
+        <!-- 上传区 -->
+        <div class="upload-area" id="uploadArea">
+            <input type="file" id="videoInput2" accept="video/*">
+            <p>点击或拖拽视频文件到此处</p>
+            <p style="color:#888;font-size:12px;margin-top:8px">支持 MP4, AVI, MOV 等格式</p>
+        </div>
+    </div>
+
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/player.js"></script>
+    <script src="/static/js/timeline.js"></script>
+    <script>
+        let currentProject = null;
+        let player = null;
+        let timeline = null;
+        let currentConfig = {};
+
+        // DOM 元素
+        const videoInput = document.getElementById('videoInput');
+        const videoInput2 = document.getElementById('videoInput2');
+        const uploadArea = document.getElementById('uploadArea');
+        const mainContent = document.getElementById('mainContent');
+        const timelineContainer = document.getElementById('timelineContainer');
+        const statusArea = document.getElementById('statusArea');
+        const statusText = document.getElementById('statusText');
+        const btnUpload = document.getElementById('btnUpload');
+        const btnAnalyze = document.getElementById('btnAnalyze');
+        const btnRender = document.getElementById('btnRender');
+        const btnDownload = document.getElementById('btnDownload');
+        const btnSettings = document.getElementById('btnSettings');
+        const videoPlayer = document.getElementById('videoPlayer');
+        const subtitleArea = document.getElementById('subtitleArea');
+        const issueList = document.getElementById('issueList');
+        const timelineCanvas = document.getElementById('timelineCanvas');
+
+        // ========== 工具函数 ==========
+        function showStatus(message, type = 'loading') {
+            statusArea.textContent = message;
+            statusArea.className = `status ${type}`;
+            statusArea.classList.remove('hidden');
+        }
+
+        function hideStatus() {
+            statusArea.classList.add('hidden');
+        }
+
+        // ========== 视频选择与上传 ==========
+        function handleVideoSelect(file) {
+            if (!file) return;
+
+            currentProject = { file };
+            uploadArea.classList.add('hidden');
+            mainContent.style.display = 'grid';
+            timelineContainer.style.display = 'block';
+            btnAnalyze.disabled = false;
+            statusText.textContent = '视频已加载，点击"开始分析"';
+
+            player = new VideoPlayer(videoPlayer);
+            const url = URL.createObjectURL(file);
+            player.load(url);
+
+            player.setOnLoaded((duration) => {
+                statusText.textContent = `视频时长: ${duration.toFixed(1)}秒`;
+            });
+        }
+
+        btnUpload.addEventListener('click', () => videoInput.click());
+        uploadArea.addEventListener('click', () => videoInput2.click());
+        videoInput.addEventListener('change', (e) => handleVideoSelect(e.target.files[0]));
+        videoInput2.addEventListener('change', (e) => handleVideoSelect(e.target.files[0]));
+
+        // ========== 分析 ==========
+        btnAnalyze.addEventListener('click', async () => {
+            if (!currentProject || !currentProject.file) return;
+
+            btnAnalyze.disabled = true;
+            showStatus('正在分析视频，请稍候...');
+
+            try {
+                const result = await API.analyze(currentProject.file);
+                currentProject = result;
+
+                showStatus('分析完成', 'success');
+                statusText.textContent = `分析完成: ${result.segments.length}个片段, ${result.auto_cuts.length}个剪辑点`;
+
+                player.load(`/api/project/${result.project_id}/stream`);
+                updateUI(result);
+
+                btnRender.disabled = false;
+                loadConfig(); // 加载配置到设置面板
+
+            } catch (error) {
+                showStatus('分析失败: ' + (error.message || error), 'error');
+                btnAnalyze.disabled = false;
+            }
+        });
+
+        // ========== 更新 UI ==========
+        function updateUI(project) {
+            renderSubtitles(project.segments);
+            renderIssues(project.issues, project);
+
+            timeline = new Timeline(timelineCanvas, { height: 200 });
+            timeline.setData({
+                segments: project.segments,
+                auto_cuts: project.auto_cuts,
+                issues: project.issues,
+                duration: project.duration
+            });
+
+            // 加载波形数据
+            if (project.waveform && project.waveform.length > 0) {
+                timeline.setWaveformData(project.waveform);
+            }
+
+            timeline.setOnChange((ranges) => {
+                document.getElementById('timelineInfo').textContent =
+                    `保留 ${ranges.length} 个区间，共 ${ranges.reduce((sum, r) => sum + (r.end - r.start), 0).toFixed(1)}秒`;
+                // 同步更新问题列表的保留/删除状态
+                syncIssueButtons(ranges, project.issues);
+            });
+
+            window.addEventListener('resize', () => timeline.resize());
+
+            player.setOnTimeUpdate((time) => {
+                timeline.setCurrentTime(time);
+                highlightSubtitle(time);
+            });
+
+            timeline.resize();
+        }
+
+        // ========== 字幕区 ==========
+        function renderSubtitles(segments) {
+            const container = document.getElementById('subtitleArea');
+            // 保留标题行
+            container.innerHTML = '<div class="subtitle-title">字幕（点击跳转 | ← → 逐帧微调）</div>';
+            segments.forEach((seg, index) => {
+                const div = document.createElement('div');
+                div.className = 'subtitle-item';
+                div.dataset.index = index;
+                div.dataset.start = seg.start;
+
+                let text = seg.text;
+                // 高亮语气词（用当前配置中的语气词）
+                const fillerWords = currentConfig.filler_words || ['嗯','啊','呃','哦','噢','这个','那个','就是说','然后'];
+                fillerWords.forEach(fw => {
+                    if (fw.length < 1) return;
+                    const regex = new RegExp(`(${fw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'g');
+                    text = text.replace(regex, '<span style="color:#e74c3c;font-weight:bold">$1</span>');
+                });
+
+                div.innerHTML = `<strong>${seg.start.toFixed(1)}s</strong> ${text}`;
+                div.addEventListener('click', () => player.seek(seg.start));
+                container.appendChild(div);
+            });
+        }
+
+        function highlightSubtitle(time) {
+            document.querySelectorAll('.subtitle-item').forEach(item => {
+                const start = parseFloat(item.dataset.start);
+                item.classList.remove('active');
+                // 找到当前时间对应的字幕
+                const nextStart = parseFloat(item.nextElementSibling?.dataset.start || '999999');
+                if (time >= start && time < nextStart) {
+                    item.classList.add('active');
+                    // 自动滚动到可视区域
+                    item.scrollIntoView({ block: 'nearest' });
+                }
+            });
+        }
+
+        // ========== 问题列表 + 保留/删除按钮 ==========
+        function renderIssues(issues, project) {
+            issueList.innerHTML = '';
+            if (issues.length === 0) {
+                issueList.innerHTML = '<p style="color:#888;font-size:12px">未检测到问题</p>';
+                return;
+            }
+
+            issues.forEach((issue, idx) => {
+                const div = document.createElement('div');
+                div.className = 'issue-item';
+                div.dataset.issueIndex = idx;
+
+                const typeLabel = {
+                    'filler_overuse': '语气词过多',
+                    'repetition': '重复词',
+                    'slow_speech': '语速过慢'
+                };
+                const label = typeLabel[issue.type] || issue.type;
+
+                div.innerHTML = `
+                    <div class="issue-header">
+                        <span class="issue-type ${issue.type}">${label}</span>
+                        <span class="issue-time">${issue.time.toFixed(1)}s ~ ${issue.end.toFixed(1)}s</span>
+                    </div>
+                    <div class="issue-text">${issue.text}</div>
+                    <div class="issue-actions">
+                        <button class="btn-keep" data-issue-idx="${idx}">✓ 保留此段</button>
+                        <button class="btn-delete" data-issue-idx="${idx}">✗ 删除此段</button>
+                    </div>
+                `;
+
+                // 点击问题跳转到对应时间
+                div.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('btn-keep') || e.target.classList.contains('btn-delete')) return;
+                    player.seek(issue.time);
+                });
+
+                issueList.appendChild(div);
+            });
+
+            // 绑定保留/删除按钮事件
+            bindIssueButtons(project);
+        }
+
+        function bindIssueButtons(project) {
+            // 保留此段：直接在保留区间中加入该段
+            document.querySelectorAll('.btn-keep').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const idx = parseInt(btn.dataset.issueIdx);
+                    const issue = project.issues[idx];
+
+                    if (timeline && issue) {
+                        timeline.keepRange(issue.time, issue.end);
+                        btn.parentElement.parentElement.classList.add('issue-kept');
+                        btn.disabled = true;
+                        btn.nextElementSibling.disabled = false;
+                    }
+                });
+            });
+
+            // 删除此段：确保该区间在 auto_cuts 中
+            document.querySelectorAll('.btn-delete').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const idx = parseInt(btn.dataset.issueIdx);
+                    const issue = project.issues[idx];
+
+                    if (timeline && issue) {
+                        timeline.addCut(issue.time, issue.end, issue.type === 'filler_overuse' ? 'filler' : 'silence');
+                        btn.parentElement.parentElement.classList.add('issue-deleted');
+                        btn.disabled = true;
+                        btn.previousElementSibling.disabled = false;
+                    }
+                });
+            });
+        }
+
+        function syncIssueButtons(ranges, issues) {
+            // 根据当前保留区间，更新问题列表中各问题的状态
+            // 如果问题的区间在保留区间内 → 显示"已保留"
+            // 如果问题的区间被剪掉 → 显示"已删除"
+            document.querySelectorAll('.issue-item').forEach((item, idx) => {
+                if (!issues || idx >= issues.length) return;
+                const issue = issues[idx];
+                const isKept = ranges.some(r => r.start <= issue.time && r.end >= issue.end);
+                item.classList.toggle('issue-kept', isKept);
+                item.classList.toggle('issue-deleted', !isKept);
+            });
+        }
+
+        // 全部保留 / 全部删除
+        document.getElementById('btnKeepAll').addEventListener('click', () => {
+            if (timeline) {
+                timeline.keepAll();
+            }
+        });
+        document.getElementById('btnDeleteAll').addEventListener('click', () => {
+            if (timeline) {
+                timeline.deleteAllCuts();
+            }
+        });
+
+        // ========== 设置面板 ==========
+        btnSettings.addEventListener('click', () => {
+            document.getElementById('settingsPanel').classList.toggle('hidden');
+            if (!currentConfig.filler_words) loadConfig();
+        });
+        document.getElementById('btnCloseSettings').addEventListener('click', () => {
+            document.getElementById('settingsPanel').classList.add('hidden');
+        });
+
+        // 滑块与输入框联动
+        function bindSlider(inputId, sliderId, displayId) {
+            const input = document.getElementById(inputId);
+            const slider = document.getElementById(sliderId);
+            const display = document.getElementById(displayId);
+
+            slider.addEventListener('input', () => {
+                input.value = slider.value;
+                display.textContent = parseFloat(slider.value).toFixed(2);
+            });
+            input.addEventListener('input', () => {
+                slider.value = input.value;
+                display.textContent = parseFloat(input.value).toFixed(2);
+            });
+        }
+        bindSlider('inputThreshold', 'sliderThreshold', 'thresholdValue');
+        bindSlider('inputSilence', 'sliderSilence', 'silenceValue');
+        bindSlider('inputSpeed', 'sliderSpeed', 'speedValue');
+
+        // 加载配置
+        async function loadConfig() {
+            try {
+                const config = await API.getConfig();
+                currentConfig = config;
+
+                // 更新滑块和输入框
+                document.getElementById('sliderThreshold').value = config.filler_ratio_threshold || 0.08;
+                document.getElementById('inputThreshold').value = config.filler_ratio_threshold || 0.08;
+                document.getElementById('thresholdValue').textContent = (config.filler_ratio_threshold || 0.08).toFixed(2);
+
+                document.getElementById('sliderSilence').value = config.min_silence_for_cut || 1.5;
+                document.getElementById('inputSilence').value = config.min_silence_for_cut || 1.5;
+                document.getElementById('silenceValue').textContent = (config.min_silence_for_cut || 1.5).toFixed(1);
+
+                document.getElementById('sliderSpeed').value = config.slow_speech_speed || 2.0;
+                document.getElementById('inputSpeed').value = config.slow_speech_speed || 2.0;
+                document.getElementById('speedValue').textContent = (config.slow_speech_speed || 2.0).toFixed(1);
+
+                // 加载语气词库
+                const fillerWords = config.filler_words || [];
+                document.getElementById('fillerWordsText').value = fillerWords.join('\n');
+
+            } catch (e) {
+                console.error('加载配置失败:', e);
+            }
+        }
+
+        // 保存语气词库
+        document.getElementById('btnSaveFiller').addEventListener('click', async () => {
+            const text = document.getElementById('fillerWordsText').value;
+            const fillerWords = text.split('\n').map(w => w.trim()).filter(w => w.length > 0);
+            try {
+                await API.updateConfig({ filler_words: fillerWords });
+                showStatus('语气词库已保存', 'success');
+                setTimeout(hideStatus, 1500);
+            } catch (e) {
+                showStatus('保存失败: ' + e.message, 'error');
+            }
+        });
+
+        // 恢复默认语气词
+        document.getElementById('btnResetFiller').addEventListener('click', () => {
+            const defaultWords = ['嗯','啊','呃','哦','噢','诶','这个','那个','就是说','然后','的话','其实','基本上','那个什么','怎么说呢','对吧','是吧','你知道吗'];
+            document.getElementById('fillerWordsText').value = defaultWords.join('\n');
+        });
+
+        // 应用参数并重新分析
+        document.getElementById('btnApplySettings').addEventListener('click', async () => {
+            if (!currentProject || !currentProject.project_id) {
+                showStatus('请先分析一个视频', 'error');
+                return;
+            }
+
+            const fillerWords = document.getElementById('fillerWordsText').value
+                .split('\n').map(w => w.trim()).filter(w => w.length > 0);
+
+            const configData = {
+                filler_ratio_threshold: parseFloat(document.getElementById('inputThreshold').value),
+                min_silence_for_cut: parseFloat(document.getElementById('inputSilence').value),
+                slow_speech_speed: parseFloat(document.getElementById('inputSpeed').value),
+                filler_words: fillerWords
+            };
+
+            showStatus('正在应用参数并重新分析...');
+
+            try {
+                // 先保存配置
+                await API.updateConfig(configData);
+
+                // 重新分析
+                const result = await API.reanalyze(currentProject.project_id);
+                currentProject = result;
+
+                showStatus('重新分析完成', 'success');
+                statusText.textContent = `分析完成: ${result.segments.length}个片段, ${result.auto_cuts.length}个剪辑点`;
+
+                player.load(`/api/project/${result.project_id}/stream`);
+                updateUI(result);
+
+                btnRender.disabled = false;
+
+            } catch (error) {
+                showStatus('重新分析失败: ' + (error.message || error), 'error');
+            }
+        });
+
+        // ========== 渲染 ==========
+        btnRender.addEventListener('click', async () => {
+            if (!currentProject || !timeline) return;
+
+            btnRender.disabled = true;
+            showStatus('正在渲染视频，请稍候...');
+
+            try {
+                const timelineData = timeline.getTimeline();
+                await API.render(currentProject.project_id, timelineData);
+
+                showStatus('渲染完成', 'success');
+                statusText.textContent = '渲染完成，可以下载';
+                btnDownload.disabled = false;
+
+            } catch (error) {
+                showStatus('渲染失败: ' + (error.message || error), 'error');
+                btnRender.disabled = false;
+            }
+        });
+
+        btnDownload.addEventListener('click', async () => {
+            if (!currentProject) return;
+            const url = await API.download(currentProject.project_id);
+            window.open(url, '_blank');
+        });
+
+        // ========== 键盘快捷键（逐帧微调） ==========
+        document.addEventListener('keydown', (e) => {
+            if (!player || !currentProject) return;
+            // 不在输入框中时才响应快捷键
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            const frameTime = 0.04; // 假设 25fps，每帧约 0.04 秒
+
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                player.seek(Math.max(0, player.video.currentTime - frameTime));
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                player.seek(Math.min(player.video.duration, player.video.currentTime + frameTime));
+            } else if (e.key === ' ') {
+                e.preventDefault();
+                if (player.video.paused) player.play(); else player.pause();
+            }
+        });
+
+        // 初始加载配置
+        loadConfig();
+    </script>
+</body>
+</html>
