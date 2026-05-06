@@ -87,6 +87,13 @@
 - **一键下载**：渲染完成后一键下载成片
 
 ---
+## 界面预览
+
+### 主界面
+![主界面](./image/screenshot_main.png)
+
+### 时间轴编辑器
+![时间轴编辑器](./image/screenshot_timeline.png)
 
 ## 技术架构
 
