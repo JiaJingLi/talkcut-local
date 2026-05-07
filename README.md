@@ -487,23 +487,6 @@ talkcut-local/
 
 ---
 
-## 开发文档
-
-详细的技術設計文檔請參考：[技术方案与开发文档.md](./技术方案与开发文档.md)
-
-文档包含：
-
-- 系统架构设计
-- 各模块详细设计
-- 数据库设计（project.json 结构）
-- API 接口设计
-- 前端界面设计
-- 参数配置与调优指南
-- 部署方案
-- 开发路线图
-
----
-
 ## 常见问题
 
 ### Q1：FunASR 模型下载失败怎么办？
@@ -704,7 +687,6 @@ furnished to do so, subject to the following conditions:
 
 - **Issue Tracker**：[GitHub Issues](https://github.com/JiaJingLi/talkcut-local/issues)
 - **讨论区**：[GitHub Discussions](https://github.com/JiaJingLi/talkcut-local/discussions)
-- **Email**：your.email@example.com
 
 ---
 
